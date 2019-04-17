@@ -1593,6 +1593,7 @@ const Data<typename MechanicalObject<DataTypes>::VecDeriv>* MechanicalObject<Dat
         const Data<typename MechanicalObject<DataTypes>::VecDeriv>* d = vectorsDeriv[v.index];
 
 #if defined(SOFA_DEBUG) || !defined(NDEBUG)
+        assert(d);
         const typename MechanicalObject<DataTypes>::VecDeriv& val = d->getValue();
         if (!val.empty() && val.size() != (unsigned int)this->getSize())
         {

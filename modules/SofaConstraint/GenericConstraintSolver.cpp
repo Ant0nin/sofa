@@ -131,12 +131,12 @@ void GenericConstraintSolver::init()
 
     simulation::common::VectorOperations vop(sofa::core::ExecParams::defaultInstance(), this->getContext());
     {
-        sofa::core::behavior::MultiVecDeriv lambda(&vop, m_lambdaId);
+        sofa::core::behavior::MultiVecDeriv lambda(&vop, core::VecDerivId::dforce());
         lambda.realloc(&vop,false,true);
         m_lambdaId = lambda.id();
     }
     {
-        sofa::core::behavior::MultiVecDeriv dx(&vop, m_dxId);
+        sofa::core::behavior::MultiVecDeriv dx(&vop, core::VecDerivId::dx());
         dx.realloc(&vop,false,true);
         m_dxId = dx.id();
     }
