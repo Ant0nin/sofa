@@ -434,10 +434,10 @@ void Simulation::dumpState ( Node* root, std::ofstream& out )
 
 
 /// Load a scene from a file
-Node::SPtr Simulation::load ( const char *filename, const std::vector<std::string>* sceneArgs )
+Node::SPtr Simulation::load ( const std::string& filename, const std::vector<std::string>& sceneArgs )
 {
-    if( sofa::helper::system::SetDirectory::GetFileName(filename).empty() || // no filename
-            sofa::helper::system::SetDirectory::GetExtension(filename).empty() ) // filename with no extension
+    if( sofa::helper::system::SetDirectory::GetFileName(filename.c_str()).empty() || // no filename
+            sofa::helper::system::SetDirectory::GetExtension(filename.c_str()).empty() ) // filename with no extension
         return NULL;
 
     SceneLoader *loader = SceneLoaderFactory::getInstance()->getEntryFileName(filename);
@@ -445,7 +445,7 @@ Node::SPtr Simulation::load ( const char *filename, const std::vector<std::strin
     if (loader) return loader->load(filename, sceneArgs);
 
     // unable to load file
-    serr << "extension ("<<sofa::helper::system::SetDirectory::GetExtension(filename)<<") not handled" << sendl;
+    serr << "extension ("<<sofa::helper::system::SetDirectory::GetExtension(filename.c_str())<<") not handled" << sendl;
     return NULL;
 }
 

@@ -109,7 +109,7 @@ public:
     virtual void dumpState( Node* root, std::ofstream& out );
 
     /// Load a scene from a file
-    virtual Node::SPtr load(const char* /* filename */, const std::vector<std::string>* sceneArgs = NULL);
+    virtual Node::SPtr load(const std::string& /* filename */, const std::vector<std::string>& sceneArgs = std::vector<std::string>(0));
 
     /// Unload a scene from a Node.
     virtual void unload(Node::SPtr root);
