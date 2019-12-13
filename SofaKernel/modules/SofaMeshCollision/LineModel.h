@@ -166,7 +166,7 @@ public:
     template<class T>
     static bool canCreate(T*& obj, core::objectmodel::BaseContext* context, core::objectmodel::BaseObjectDescription* arg)
     {
-        if (dynamic_cast<core::behavior::MechanicalState<DataTypes>*>(context->getMechanicalState()) == NULL)
+        if (dynamic_cast<core::behavior::MechanicalState<DataTypes>*>(context->getMechanicalState()) == nullptr)
             return false;
         return BaseObject::canCreate(obj, context, arg);
     }
@@ -176,24 +176,30 @@ public:
         return templateName(this);
     }
 
-    static std::string templateName(const LineCollisionModel<DataTypes>* = NULL)
+    static std::string templateName(const LineCollisionModel<DataTypes>* = nullptr)
     {
         return DataTypes::Name();
     }
 
+    sofa::core::topology::BaseMeshTopology* getCollisionTopology() override
+    {
+        return l_topology.get();
+    }
+
     void computeBBox(const core::ExecParams* params, bool onlyVisible) override;
 
+    Data< std::string  > LineActiverPath; ///< path of a component LineActiver that activates or deactivates collision line during execution
+    Data<bool> m_displayFreePosition; ///< Display Collision Model Points free position(in green)
+
+    /// Link to be set to the topology container in the component graph.
+    SingleLink<LineCollisionModel<DataTypes>, sofa::core::topology::BaseMeshTopology, BaseLink::FLAG_STOREPATH | BaseLink::FLAG_STRONGLINK> l_topology;
 
 protected:
-
     core::behavior::MechanicalState<DataTypes>* mstate;
     Topology* topology;
     PointModel* mpoints;
     int meshRevision;
     LineLocalMinDistanceFilter *m_lmdFilter;
-
-    Data< std::string  > LineActiverPath; ///< path of a component LineActiver that activates or deactivates collision line during execution
-    Data<bool> m_displayFreePosition; ///< Display Collision Model Points free position(in green)
 
     LineActiver *myActiver;
 

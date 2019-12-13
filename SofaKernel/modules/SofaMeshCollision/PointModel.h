@@ -132,7 +132,7 @@ public:
     template<class T>
     static bool canCreate(T*& obj, core::objectmodel::BaseContext* context, core::objectmodel::BaseObjectDescription* arg)
     {
-        if (dynamic_cast<core::behavior::MechanicalState<DataTypes>*>(context->getMechanicalState()) == NULL)
+        if (dynamic_cast<core::behavior::MechanicalState<DataTypes>*>(context->getMechanicalState()) == nullptr)
             return false;
         return BaseObject::canCreate(obj, context, arg);
     }
@@ -142,7 +142,7 @@ public:
         return templateName(this);
     }
 
-    static std::string templateName(const PointCollisionModel<DataTypes>* = NULL)
+    static std::string templateName(const PointCollisionModel<DataTypes>* = nullptr)
     {
         return DataTypes::Name();
     }
@@ -150,6 +150,11 @@ public:
 
     void computeBBox(const core::ExecParams* params, bool onlyVisible) override;
     void updateNormals();
+
+    sofa::core::topology::BaseMeshTopology* getCollisionTopology() override
+    {
+        return l_topology.get();
+    }
 
 protected:
 
@@ -164,7 +169,11 @@ protected:
     PointLocalMinDistanceFilter *m_lmdFilter;
     EmptyFilter m_emptyFilter;
 
-    Data<bool> m_displayFreePosition; ///< Display Collision Model Points free position(in green)    
+    Data<bool> m_displayFreePosition; ///< Display Collision Model Points free position(in green)
+                                      
+    /// Link to be set to the topology container in the component graph.
+    SingleLink<PointCollisionModel<DataTypes>, sofa::core::topology::BaseMeshTopology, BaseLink::FLAG_STOREPATH | BaseLink::FLAG_STRONGLINK> l_topology;
+
 
     PointActiver *myActiver;
 };
