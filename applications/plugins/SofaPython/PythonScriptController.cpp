@@ -203,6 +203,7 @@ void PythonScriptController::loadScript()
 
     // if the filename is empty, the controller is supposed to be in an already loaded file
     // otherwise load the controller's file
+    std::cout << "filename.getFullPath() => " << m_filename.getFullPath().c_str() << std::endl;
     if( m_filename.isSet() && !m_filename.getRelativePath().empty() && !PythonEnvironment::runFile(m_filename.getFullPath().c_str()) )
     {
         msg_error() << " load error (file '"<<m_filename.getFullPath().c_str()<<"' not parsable)" ;

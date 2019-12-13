@@ -100,3 +100,7 @@ if(SOFAOPENGLVISUAL_BUILD_TESTS)
     enable_testing()
     add_subdirectory(SofaOpenglVisual_test)
 endif()
+
+if(SOFAGUI_BUILD_TESTS)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/SofaOpenglVisual_test tests/SofaOpenglVisual)
+endif()

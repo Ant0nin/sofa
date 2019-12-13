@@ -100,6 +100,7 @@ Node::SPtr SceneLoaderXML::processXML(xml::BaseElement* xml, const char *filenam
 
     // We go the the current file's directory so that all relative path are correct
     helper::system::SetDirectory chdir ( filename );
+    std::cout << "current dir = " << chdir.GetCurrentDir() << std::endl;
 
     // Temporarily set the numeric formatting locale to ensure that
     // floating-point values are interpreted correctly by tinyXML. (I.e. the

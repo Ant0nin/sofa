@@ -234,18 +234,19 @@ bool GIDMeshLoader::readGID(std::ifstream &file)
         return false;
     }
 
-    do
+//    do
     {
         std::getline(file, line);
         std::transform(line.begin(), line.end(), line.begin(), ::tolower);
     }
-    while( line != "coordinates" );
+//    while( line != "coordinates" );
 
     std::getline(file, line);
     std::transform(line.begin(), line.end(), line.begin(), ::tolower);
 
 
-    while( line != "end coordinates")
+//    while( line != "end coordinates")
+    while(line.substr(0,4) != "toto")
     {
         int vid;
 
@@ -279,7 +280,7 @@ bool GIDMeshLoader::readGID(std::ifstream &file)
         std::getline(file, line);
         std::transform(line.begin(), line.end(), line.begin(), ::tolower);
     }
-    while( line != "elements" );
+    while( line.substr(0,8) != "elements" );
 
     switch(m_eltType)
     {
@@ -503,7 +504,7 @@ bool GIDMeshLoader::readTetrahedralElements(std::ifstream &file)
     if( m_nNode != 4 )
         msg_warning() << "Implementation only supports 4 nodes Tetrahedra elements";
 
-    while( line != "end elements")
+    while( line.substr(0,12) != "end elements")
     {
         unsigned int eid; // element id
         unsigned int vid; // vertex id

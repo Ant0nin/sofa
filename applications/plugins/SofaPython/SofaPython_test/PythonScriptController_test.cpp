@@ -128,6 +128,10 @@ class TestController(Sofa.PythonScriptController):
            EXPECT_MSG_EMIT(Error) ;
            pyctrl->draw(nullptr) ;
         }
+
+        // TODO: remove the following
+        std::cout << "teststring = " << teststring << std::endl;
+        std::cout << "pythonControllerPath = " << pythonControllerPath << std::endl;
     }
 };
 
