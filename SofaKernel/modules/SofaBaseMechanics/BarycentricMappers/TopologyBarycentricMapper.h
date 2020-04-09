@@ -53,6 +53,10 @@ public:
     ForceMask *maskFrom;
     ForceMask *maskTo;
 
+    virtual int addPointInPoint(const int pointIndex);
+    virtual int setPointInPoint(const int pointIndexSrc, const int pointIndexTarget);
+    virtual int createPointInPoint(const typename Out::Coord& p, int pointIndex, const typename In::VecCoord* points);
+
     virtual int addPointInLine(const int lineIndex, const SReal* baryCoords);
     virtual int setPointInLine(const int pointIndex, const int lineIndex, const SReal* baryCoords);
     virtual int createPointInLine(const typename Out::Coord& p, int lineIndex, const typename In::VecCoord* points);

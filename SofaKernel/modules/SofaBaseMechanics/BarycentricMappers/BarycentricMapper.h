@@ -123,6 +123,7 @@ public:
     typedef MappingData<2,4> QuadData;
     typedef MappingData<3,4> TetraData;
     typedef MappingData<3,8> CubeData;
+    typedef MappingData<0,0> MappingData0D;
     typedef MappingData<1,0> MappingData1D;
     typedef MappingData<2,0> MappingData2D;
     typedef MappingData<3,0> MappingData3D;

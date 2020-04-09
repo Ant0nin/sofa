@@ -37,6 +37,30 @@ namespace _topologybarycentricmapper_
 {
 
 template<class In, class Out>
+int TopologyBarycentricMapper<In,Out>::addPointInPoint(const int pointIndex)
+{
+    SOFA_UNUSED(pointIndex);
+    return 0;
+}
+
+template<class In, class Out>
+int TopologyBarycentricMapper<In,Out>::setPointInPoint(const int pointIndexSrc, const int pointIndexTarget)
+{
+    SOFA_UNUSED(pointIndexSrc);
+    SOFA_UNUSED(pointIndexTarget);
+    return 0;
+}
+
+template<class In, class Out>
+int TopologyBarycentricMapper<In,Out>::createPointInPoint(const typename Out::Coord& p, int pointIndex, const typename In::VecCoord* points)
+{
+    SOFA_UNUSED(p);
+    SOFA_UNUSED(pointIndex);
+    SOFA_UNUSED(points);
+    return 0;
+}
+
+template<class In, class Out>
 int TopologyBarycentricMapper<In,Out>::addPointInLine(const int lineIndex, const SReal* baryCoords)
 {
     SOFA_UNUSED(lineIndex);

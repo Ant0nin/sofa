@@ -53,6 +53,7 @@ public:
     typedef typename Inherit1::OutDeriv  OutDeriv;
 
     typedef typename Inherit1::InDeriv  InDeriv;
+    typedef typename Inherit1::MappingData0D MappingData0D;
     typedef typename Inherit1::MappingData1D MappingData1D;
     typedef typename Inherit1::MappingData2D MappingData2D;
     typedef typename Inherit1::MappingData3D MappingData3D;
@@ -68,6 +69,8 @@ public:
 public:
     void clear(int reserve=0) override;
     void resize( core::State<Out>* toModel ) override;
+    int addPointInPoint(const int pointIndex) override;
+    int createPointInPoint(const typename Out::Coord& p, int pointIndex, const typename In::VecCoord* points) override;
     int addPointInLine(const int lineIndex, const SReal* baryCoords) override;
     int createPointInLine(const typename Out::Coord& p, int lineIndex, const typename In::VecCoord* points) override;
     int addPointInTriangle(const int triangleIndex, const SReal* baryCoords) override;
@@ -101,6 +104,7 @@ protected:
 
     void addMatrixContrib(MatrixType* m, int row, int col, Real value);
 
+    sofa::helper::vector< MappingData0D >  m_map0d;
     sofa::helper::vector< MappingData1D >  m_map1d;
     sofa::helper::vector< MappingData2D >  m_map2d;
     sofa::helper::vector< MappingData3D >  m_map3d;
@@ -108,6 +112,7 @@ protected:
     MatrixType* m_matrixJ {nullptr};
     bool        m_updateJ {false};
 private:
+    void clearMap0dAndReserve(int size=0);
     void clearMap1dAndReserve(int size=0);
     void clearMap2dAndReserve(int size=0);
     void clearMap3dAndReserve(int size=0);
