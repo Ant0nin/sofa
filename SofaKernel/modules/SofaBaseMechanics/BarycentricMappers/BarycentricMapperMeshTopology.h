@@ -109,6 +109,14 @@ protected:
     sofa::helper::vector< MappingData2D >  m_map2d;
     sofa::helper::vector< MappingData3D >  m_map3d;
 
+    enum MappingDataDimension { D0, D1, D2, D3 };
+    struct IndexationEntry {
+        MappingDataDimension dimType;
+        size_t localIndex;
+        IndexationEntry(MappingDataDimension dimType_, size_t localIndex_);
+    };
+    std::vector< IndexationEntry > m_indexation;
+
     MatrixType* m_matrixJ {nullptr};
     bool        m_updateJ {false};
 private:

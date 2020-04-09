@@ -55,6 +55,13 @@ typedef typename sofa::core::topology::BaseMeshTopology::SeqQuads SeqQuads;
 typedef typename sofa::core::topology::BaseMeshTopology::SeqTetrahedra SeqTetrahedra;
 typedef typename sofa::core::topology::BaseMeshTopology::SeqHexahedra SeqHexahedra;
 
+template<class In, class Out>
+BarycentricMapperMeshTopology<In,Out>::IndexationEntry::IndexationEntry(
+        BarycentricMapperMeshTopology::MappingDataDimension dimType_, size_t localIndex_)
+    : dimType(dimType_), localIndex(localIndex_)
+{
+}
+
 template <class In, class Out>
 BarycentricMapperMeshTopology<In,Out>::BarycentricMapperMeshTopology(core::topology::BaseMeshTopology* fromTopology,
         topology::PointSetTopologyContainer* toTopology)
@@ -90,7 +97,8 @@ void BarycentricMapperMeshTopology<In,Out>::init ( const typename Out::VecCoord&
     helper::vector<Matrix3> bases;
     helper::vector<Vector3> centers;
 
-    clearMap0dAndReserve( (int)out.size() );
+    clearMap0dAndReserve( out.size() );
+    m_indexation.reserve( out.size() * 4 );
 
     if ( tetras.empty() && hexas.empty() )
     {
@@ -99,7 +107,7 @@ void BarycentricMapperMeshTopology<In,Out>::init ( const typename Out::VecCoord&
             const SeqEdges& edges = this->m_fromTopology->getEdges();
             if ( edges.empty() ) return;
 
-            clearMap1dAndReserve ( (int)out.size() );
+            clearMap1dAndReserve ( out.size() );
 
             helper::vector< SReal >   lengthEdges;
             helper::vector< Vector3 > unitaryVectors;
@@ -279,77 +287,104 @@ void BarycentricMapperMeshTopology<In,Out>::clear ( int size )
     clearMap1dAndReserve(size);
     clearMap2dAndReserve(size);
     clearMap3dAndReserve(size);
+
+    m_indexation.clear();
+    if( size>0) m_indexation.reserve(size*4);
 }
 
 
 template<class In, class Out>
 int BarycentricMapperMeshTopology<In,Out>::addPointInPoint(const int pointIndex)
 {
+    const size_t localIndex = m_map0d.size();
     m_map0d.resize ( m_map0d.size() +1 );
     MappingData0D& data = *m_map0d.rbegin();
     data.in_index = pointIndex;
-    return (int)m_map0d.size()-1;
+
+    int index = m_indexation.size();
+    m_indexation.push_back(IndexationEntry(D0, localIndex));
+    return index;
 }
 
 
 template <class In, class Out>
 int BarycentricMapperMeshTopology<In,Out>::addPointInLine ( const int lineIndex, const SReal* baryCoords )
 {
+    const size_t localIndex = m_map1d.size();
     m_map1d.resize ( m_map1d.size() +1 );
     MappingData1D& data = *m_map1d.rbegin();
     data.in_index = lineIndex;
     data.baryCoords[0] = ( Real ) baryCoords[0];
-    return (int)m_map1d.size()-1;
+
+    int index = m_indexation.size();
+    m_indexation.push_back(IndexationEntry(D1, localIndex));
+    return index;
 }
 
 
 template <class In, class Out>
 int BarycentricMapperMeshTopology<In,Out>::addPointInTriangle ( const int triangleIndex, const SReal* baryCoords )
 {
+    const size_t localIndex = m_map2d.size();
     m_map2d.resize ( m_map2d.size() +1 );
     MappingData2D& data = *m_map2d.rbegin();
     data.in_index = triangleIndex;
     data.baryCoords[0] = ( Real ) baryCoords[0];
     data.baryCoords[1] = ( Real ) baryCoords[1];
-    return (int)m_map2d.size()-1;
+
+    int index = m_indexation.size();
+    m_indexation.push_back(IndexationEntry(D2, localIndex));
+    return index;
 }
 
 
 template <class In, class Out>
 int BarycentricMapperMeshTopology<In,Out>::addPointInQuad ( const int quadIndex, const SReal* baryCoords )
 {
+    const size_t localIndex = m_map2d.size();
     m_map2d.resize ( m_map2d.size() +1 );
     MappingData2D& data = *m_map2d.rbegin();
     data.in_index = quadIndex + this->m_fromTopology->getNbTriangles();
     data.baryCoords[0] = ( Real ) baryCoords[0];
     data.baryCoords[1] = ( Real ) baryCoords[1];
-    return (int)m_map2d.size()-1;
+
+    int index = m_indexation.size();
+    m_indexation.push_back(IndexationEntry(D2, localIndex));
+    return index;
 }
 
 
 template <class In, class Out>
 int BarycentricMapperMeshTopology<In,Out>::addPointInTetra ( const int tetraIndex, const SReal* baryCoords )
 {
+    const size_t localIndex = m_map3d.size();
     m_map3d.resize ( m_map3d.size() +1 );
     MappingData3D& data = *m_map3d.rbegin();
     data.in_index = tetraIndex;
     data.baryCoords[0] = ( Real ) baryCoords[0];
     data.baryCoords[1] = ( Real ) baryCoords[1];
     data.baryCoords[2] = ( Real ) baryCoords[2];
-    return (int)m_map3d.size()-1;
+
+    int index = m_indexation.size();
+    m_indexation.push_back(IndexationEntry(D3, localIndex));
+    return index;
 }
 
 
 template <class In, class Out>
 int BarycentricMapperMeshTopology<In,Out>::addPointInCube ( const int cubeIndex, const SReal* baryCoords )
 {
+    const size_t localIndex = m_map3d.size();
     m_map3d.resize ( m_map3d.size() +1 );
     MappingData3D& data = *m_map3d.rbegin();
     data.in_index = cubeIndex + this->m_fromTopology->getNbTetrahedra();
     data.baryCoords[0] = ( Real ) baryCoords[0];
     data.baryCoords[1] = ( Real ) baryCoords[1];
     data.baryCoords[2] = ( Real ) baryCoords[2];
-    return (int)m_map3d.size()-1;
+
+    int index = m_indexation.size();
+    m_indexation.push_back(IndexationEntry(D3, localIndex));
+    return index;
 }
 
 template<class In, class Out>
@@ -487,11 +522,6 @@ void BarycentricMapperMeshTopology<In,Out>::applyJT ( typename In::MatrixDeriv& 
     const size_t iTri = triangles.size();
     const size_t iTetra= tetrahedra.size();
 
-    const size_t i0d = m_map0d.size();
-    const size_t i1d = m_map1d.size();
-    const size_t i2d = m_map2d.size();
-    const size_t i3d = m_map3d.size();
-
     size_t indexIn;
 
     typename Out::MatrixDeriv::RowConstIterator rowItEnd = in.end();
@@ -510,75 +540,73 @@ void BarycentricMapperMeshTopology<In,Out>::applyJT ( typename In::MatrixDeriv& 
                 indexIn = colIt.index();
                 InDeriv data = (InDeriv) Out::getDPos(colIt.val());
 
-                // 0D elements
-                if ( indexIn < i0d )
+                const IndexationEntry& ie = m_indexation.at(indexIn);
+                switch (ie.dimType)
                 {
-                    size_t index = m_map0d[indexIn].in_index;
-                    o.addCol( index, data );
-                }
-                // 1D elements
-                else if ( indexIn < i1d )
-                {
-                    const OutReal fx = ( OutReal ) m_map1d[indexIn].baryCoords[0];
-                    size_t index = m_map1d[indexIn].in_index;
-                    {
+                    case D0: {
+                        size_t index = m_map0d[ie.localIndex].in_index;
+                        o.addCol( index, data );
+                        break;
+                    }
+                    case D1: {
+                        const OutReal fx = ( OutReal ) m_map1d[ie.localIndex].baryCoords[0];
+                        size_t index = m_map1d[ie.localIndex].in_index;
                         const Edge& line = lines[index];
                         o.addCol( line[0], data * ( 1-fx ) );
                         o.addCol( line[1], data * fx );
+                        break;
                     }
-                }
-                // 2D elements : triangle or quad
-                else if ( indexIn < i2d )
-                {
-                    const OutReal fx = ( OutReal ) m_map2d[indexIn].baryCoords[0];
-                    const OutReal fy = ( OutReal ) m_map2d[indexIn].baryCoords[1];
-                    size_t index = m_map2d[indexIn].in_index;
-                    if ( index < iTri ) // triangle
-                    {
-                        const Triangle& triangle = triangles[index];
-                        o.addCol( triangle[0], data * ( 1-fx-fy ) );
-                        o.addCol( triangle[1], data * fx );
-                        o.addCol( triangle[2], data * fy );
+                    case D2: {
+                        const OutReal fx = ( OutReal ) m_map2d[ie.localIndex].baryCoords[0];
+                        const OutReal fy = ( OutReal ) m_map2d[ie.localIndex].baryCoords[1];
+                        size_t index = m_map2d[ie.localIndex].in_index;
+                        if ( index < iTri ) // triangle
+                        {
+                            const Triangle& triangle = triangles[index];
+                            o.addCol( triangle[0], data * ( 1-fx-fy ) );
+                            o.addCol( triangle[1], data * fx );
+                            o.addCol( triangle[2], data * fy );
+                        }
+                        else // quad
+                        {
+                            const Quad& quad = quads[index - iTri];
+                            o.addCol( quad[0], data * ( ( 1-fx ) * ( 1-fy ) ) );
+                            o.addCol( quad[1], data * ( ( fx ) * ( 1-fy ) ) );
+                            o.addCol( quad[3], data * ( ( 1-fx ) * ( fy ) ) );
+                            o.addCol( quad[2], data * ( ( fx ) * ( fy ) ) );
+                        }
+                        break;
                     }
-                    else // quad
-                    {
-                        const Quad& quad = quads[index - iTri];
-                        o.addCol( quad[0], data * ( ( 1-fx ) * ( 1-fy ) ) );
-                        o.addCol( quad[1], data * ( ( fx ) * ( 1-fy ) ) );
-                        o.addCol( quad[3], data * ( ( 1-fx ) * ( fy ) ) );
-                        o.addCol( quad[2], data * ( ( fx ) * ( fy ) ) );
-                    }
-                }
-                // 3D elements : tetra or hexa
-                else if ( indexIn < i3d )
-                {
-                    const OutReal fx = ( OutReal ) m_map3d[indexIn].baryCoords[0];
-                    const OutReal fy = ( OutReal ) m_map3d[indexIn].baryCoords[1];
-                    const OutReal fz = ( OutReal ) m_map3d[indexIn].baryCoords[2];
-                    size_t index = m_map3d[indexIn].in_index;
-                    if ( index < iTetra ) // tetra
-                    {
-                        const Tetra& tetra = tetrahedra[index];
-                        o.addCol ( tetra[0], data * ( 1-fx-fy-fz ) );
-                        o.addCol ( tetra[1], data * fx );
-                        o.addCol ( tetra[2], data * fy );
-                        o.addCol ( tetra[3], data * fz );
-                    }
-                    else // hexa
-                    {
-                        const Hexa& hexa = hexas[index-iTetra];
+                    case D3: {
+                        const OutReal fx = ( OutReal ) m_map3d[ie.localIndex].baryCoords[0];
+                        const OutReal fy = ( OutReal ) m_map3d[ie.localIndex].baryCoords[1];
+                        const OutReal fz = ( OutReal ) m_map3d[ie.localIndex].baryCoords[2];
+                        size_t index = m_map3d[ie.localIndex].in_index;
+                        if ( index < iTetra ) // tetra
+                        {
+                            const Tetra& tetra = tetrahedra[index];
+                            o.addCol ( tetra[0], data * ( 1-fx-fy-fz ) );
+                            o.addCol ( tetra[1], data * fx );
+                            o.addCol ( tetra[2], data * fy );
+                            o.addCol ( tetra[3], data * fz );
+                        }
+                        else // hexa
+                        {
+                            const Hexa& hexa = hexas[index-iTetra];
 
-                        o.addCol ( hexa[0],data * ( ( 1-fx ) * ( 1-fy ) * ( 1-fz ) ) ) ;
-                        o.addCol ( hexa[1],data * ( ( fx ) * ( 1-fy ) * ( 1-fz ) ) ) ;
+                            o.addCol ( hexa[0],data * ( ( 1-fx ) * ( 1-fy ) * ( 1-fz ) ) ) ;
+                            o.addCol ( hexa[1],data * ( ( fx ) * ( 1-fy ) * ( 1-fz ) ) ) ;
 
-                        o.addCol ( hexa[3],data * ( ( 1-fx ) * ( fy ) * ( 1-fz ) ) ) ;
-                        o.addCol ( hexa[2],data * ( ( fx ) * ( fy ) * ( 1-fz ) ) ) ;
+                            o.addCol ( hexa[3],data * ( ( 1-fx ) * ( fy ) * ( 1-fz ) ) ) ;
+                            o.addCol ( hexa[2],data * ( ( fx ) * ( fy ) * ( 1-fz ) ) ) ;
 
-                        o.addCol ( hexa[4],data * ( ( 1-fx ) * ( 1-fy ) * ( fz ) ) ) ;
-                        o.addCol ( hexa[5],data * ( ( fx ) * ( 1-fy ) * ( fz ) ) ) ;
+                            o.addCol ( hexa[4],data * ( ( 1-fx ) * ( 1-fy ) * ( fz ) ) ) ;
+                            o.addCol ( hexa[5],data * ( ( fx ) * ( 1-fy ) * ( fz ) ) ) ;
 
-                        o.addCol ( hexa[7],data * ( ( 1-fx ) * ( fy ) * ( fz ) ) ) ;
-                        o.addCol ( hexa[6],data * ( ( fx ) * ( fy ) * ( fz ) ) ) ;
+                            o.addCol ( hexa[7],data * ( ( 1-fx ) * ( fy ) * ( fz ) ) ) ;
+                            o.addCol ( hexa[6],data * ( ( fx ) * ( fy ) * ( fz ) ) ) ;
+                        }
+                        break;
                     }
                 }
             }
@@ -599,25 +627,21 @@ void BarycentricMapperMeshTopology<In,Out>::draw  (const core::visual::VisualPar
     const SeqHexahedra& cubes = this->m_fromTopology->getHexahedra();
 
     std::vector< Vector3 > points;
-    // 0D elements
+
+    for(size_t k = 0; k < m_indexation.size(); ++k)
     {
-        for ( unsigned int i=0; i<m_map0d.size(); i++ )
+        const IndexationEntry& ie = m_indexation[k];
+        switch (ie.dimType)
         {
-            int index = m_map1d[i].in_index;
-            {
-                points.push_back ( Out::getCPos(out[i]) );
+            case D0: {
+                int index = m_map1d[ie.localIndex].in_index;
+                points.push_back ( Out::getCPos(out[k]) );
                 points.push_back ( in[index] );
+                break;
             }
-        }
-    }
-    // 1D elements
-    {
-        const int i0 = m_map0d.size();
-        for ( unsigned int i=0; i<m_map1d.size(); i++ )
-        {
-            const Real fx = m_map1d[i].baryCoords[0];
-            int index = m_map1d[i].in_index;
-            {
+            case D1: {
+                const Real fx = m_map1d[ie.localIndex].baryCoords[0];
+                int index = m_map1d[ie.localIndex].in_index;
                 const Edge& line = lines[index];
                 Real f[2];
                 f[0] = ( 1-fx );
@@ -626,114 +650,109 @@ void BarycentricMapperMeshTopology<In,Out>::draw  (const core::visual::VisualPar
                 {
                     if ( f[j]<=-0.0001 || f[j]>=0.0001 )
                     {
-                        points.push_back ( Out::getCPos(out[i+i0]) );
+                        points.push_back ( Out::getCPos(out[k]) );
                         points.push_back ( in[line[j]] );
                     }
                 }
+                break;
+            }
+            case D2: {
+                const int c0 = triangles.size();
+                const Real fx = m_map2d[ie.localIndex].baryCoords[0];
+                const Real fy = m_map2d[ie.localIndex].baryCoords[1];
+                int index = m_map2d[ie.localIndex].in_index;
+                if ( index<c0 )
+                {
+                    const Triangle& triangle = triangles[index];
+                    Real f[3];
+                    f[0] = ( 1-fx-fy );
+                    f[1] = fx;
+                    f[2] = fy;
+                    for ( int j=0; j<3; j++ )
+                    {
+                        if ( f[j]<=-0.0001 || f[j]>=0.0001 )
+                        {
+                            points.push_back ( Out::getCPos(out[k]) );
+                            points.push_back ( in[triangle[j]] );
+                        }
+                    }
+                }
+                else
+                {
+                    const Quad& quad = quads[index-c0];
+                    Real f[4];
+                    f[0] = ( ( 1-fx ) * ( 1-fy ) );
+                    f[1] = ( ( fx ) * ( 1-fy ) );
+                    f[3] = ( ( 1-fx ) * ( fy ) );
+                    f[2] = ( ( fx ) * ( fy ) );
+                    for ( int j=0; j<4; j++ )
+                    {
+                        if ( f[j]<=-0.0001 || f[j]>=0.0001 )
+                        {
+                            points.push_back ( Out::getCPos(out[k]) );
+                            points.push_back ( in[quad[j]] );
+                        }
+                    }
+                }
+                break;
+            }
+            case D3: {
+                const int c0 = tetrahedra.size();
+                const Real fx = m_map3d[ie.localIndex].baryCoords[0];
+                const Real fy = m_map3d[ie.localIndex].baryCoords[1];
+                const Real fz = m_map3d[ie.localIndex].baryCoords[2];
+                int index = m_map3d[ie.localIndex].in_index;
+                if ( index<c0 )
+                {
+                    const Tetra& tetra = tetrahedra[index];
+                    Real f[4];
+                    f[0] = ( 1-fx-fy-fz );
+                    f[1] = fx;
+                    f[2] = fy;
+                    f[3] = fz;
+                    for ( int j=0; j<4; j++ )
+                    {
+                        if ( f[j]<=-0.0001 || f[j]>=0.0001 )
+                        {
+                            points.push_back ( Out::getCPos(out[k]) );
+                            points.push_back ( in[tetra[j]] );
+                        }
+                    }
+                }
+                else
+                {
+                    const Hexa& cube = cubes[index-c0];
+
+                    Real f[8];
+                    f[0] = ( 1-fx ) * ( 1-fy ) * ( 1-fz );
+                    f[1] = ( fx ) * ( 1-fy ) * ( 1-fz );
+
+                    f[3] = ( 1-fx ) * ( fy ) * ( 1-fz );
+                    f[2] = ( fx ) * ( fy ) * ( 1-fz );
+
+                    f[4] = ( 1-fx ) * ( 1-fy ) * ( fz );
+                    f[5] = ( fx ) * ( 1-fy ) * ( fz );
+
+                    f[7] = ( 1-fx ) * ( fy ) * ( fz );
+                    f[6] = ( fx ) * ( fy ) * ( fz );
+
+                    for ( int j=0; j<8; j++ )
+                    {
+                        if ( f[j]<=-0.0001 || f[j]>=0.0001 )
+                        {
+                            points.push_back ( Out::getCPos(out[k]) );
+                            points.push_back ( in[cube[j]] );
+                        }
+                    }
+                }
+                break;
             }
         }
     }
-    // 2D elements
-    {
-        const int i0 = m_map0d.size()+m_map1d.size();
-        const int c0 = triangles.size();
-        for ( unsigned int i=0; i<m_map2d.size(); i++ )
-        {
-            const Real fx = m_map2d[i].baryCoords[0];
-            const Real fy = m_map2d[i].baryCoords[1];
-            int index = m_map2d[i].in_index;
-            if ( index<c0 )
-            {
-                const Triangle& triangle = triangles[index];
-                Real f[3];
-                f[0] = ( 1-fx-fy );
-                f[1] = fx;
-                f[2] = fy;
-                for ( int j=0; j<3; j++ )
-                {
-                    if ( f[j]<=-0.0001 || f[j]>=0.0001 )
-                    {
-                        points.push_back ( Out::getCPos(out[i+i0]) );
-                        points.push_back ( in[triangle[j]] );
-                    }
-                }
-            }
-            else
-            {
-                const Quad& quad = quads[index-c0];
-                Real f[4];
-                f[0] = ( ( 1-fx ) * ( 1-fy ) );
-                f[1] = ( ( fx ) * ( 1-fy ) );
-                f[3] = ( ( 1-fx ) * ( fy ) );
-                f[2] = ( ( fx ) * ( fy ) );
-                for ( int j=0; j<4; j++ )
-                {
-                    if ( f[j]<=-0.0001 || f[j]>=0.0001 )
-                    {
-                        points.push_back ( Out::getCPos(out[i+i0]) );
-                        points.push_back ( in[quad[j]] );
-                    }
-                }
-            }
-        }
-    }
-    // 3D elements
-    {
-        const int i0 = m_map0d.size() +m_map1d.size() +m_map2d.size();
-        const int c0 = tetrahedra.size();
-        for ( unsigned int i=0; i<m_map3d.size(); i++ )
-        {
-            const Real fx = m_map3d[i].baryCoords[0];
-            const Real fy = m_map3d[i].baryCoords[1];
-            const Real fz = m_map3d[i].baryCoords[2];
-            int index = m_map3d[i].in_index;
-            if ( index<c0 )
-            {
-                const Tetra& tetra = tetrahedra[index];
-                Real f[4];
-                f[0] = ( 1-fx-fy-fz );
-                f[1] = fx;
-                f[2] = fy;
-                f[3] = fz;
-                for ( int j=0; j<4; j++ )
-                {
-                    if ( f[j]<=-0.0001 || f[j]>=0.0001 )
-                    {
-                        points.push_back ( Out::getCPos(out[i+i0]) );
-                        points.push_back ( in[tetra[j]] );
-                    }
-                }
-            }
-            else
-            {
-                const Hexa& cube = cubes[index-c0];
 
-                Real f[8];
-                f[0] = ( 1-fx ) * ( 1-fy ) * ( 1-fz );
-                f[1] = ( fx ) * ( 1-fy ) * ( 1-fz );
-
-                f[3] = ( 1-fx ) * ( fy ) * ( 1-fz );
-                f[2] = ( fx ) * ( fy ) * ( 1-fz );
-
-                f[4] = ( 1-fx ) * ( 1-fy ) * ( fz );
-                f[5] = ( fx ) * ( 1-fy ) * ( fz );
-
-                f[7] = ( 1-fx ) * ( fy ) * ( fz );
-                f[6] = ( fx ) * ( fy ) * ( fz );
-
-                for ( int j=0; j<8; j++ )
-                {
-                    if ( f[j]<=-0.0001 || f[j]>=0.0001 )
-                    {
-                        points.push_back ( Out::getCPos(out[i+i0]) );
-                        points.push_back ( in[cube[j]] );
-                    }
-                }
-            }
-        }
-    }
     vparams->drawTool()->drawLines ( points, 1, sofa::defaulttype::Vec<4,float> ( 0,1,0,1 ) );
 }
+
 
 template <class In, class Out>
 const sofa::defaulttype::BaseMatrix* BarycentricMapperMeshTopology<In,Out>::getJ(int outSize, int inSize)
@@ -755,96 +774,81 @@ const sofa::defaulttype::BaseMatrix* BarycentricMapperMeshTopology<In,Out>::getJ
     const SeqTetrahedra& tetrahedra = this->m_fromTopology->getTetrahedra();
     const SeqHexahedra& cubes = this->m_fromTopology->getHexahedra();
 
-    // 0D elements
+    for(size_t k = 0; k < m_indexation.size(); ++k)
     {
-        for ( size_t i=0; i<m_map0d.size(); i++ )
+        const IndexationEntry& ie = m_indexation[k];
+        switch (ie.dimType)
         {
-            const size_t out = i;
-            size_t index = m_map0d[i].in_index;
-            {
-                this->addMatrixContrib(m_matrixJ, out, index, 1 );
+            case D0: {
+                size_t index = m_map0d[ie.localIndex].in_index;
+                this->addMatrixContrib(m_matrixJ, k, index, 1 );
+                break;
             }
-        }
-    }
-    // 1D elements
-    {
-        const size_t i0 = m_map0d.size();
-        for ( size_t i=0; i<m_map1d.size(); i++ )
-        {
-            const size_t out = i+i0;
-            const Real fx = ( Real ) m_map1d[i].baryCoords[0];
-            size_t index = m_map1d[i].in_index;
-            {
+            case D1: {
+                const Real fx = ( Real ) m_map1d[ie.localIndex].baryCoords[0];
+                size_t index = m_map1d[ie.localIndex].in_index;
                 const Edge& line = lines[index];
-                this->addMatrixContrib(m_matrixJ, out, line[0],  ( 1-fx ));
-                this->addMatrixContrib(m_matrixJ, out, line[1],  fx);
+                this->addMatrixContrib(m_matrixJ, k, line[0],  ( 1-fx ));
+                this->addMatrixContrib(m_matrixJ, k, line[1],  fx);
+                break;
+            }
+            case D2: {
+                const size_t c0 = triangles.size();
+                const Real fx = ( Real ) m_map2d[ie.localIndex].baryCoords[0];
+                const Real fy = ( Real ) m_map2d[ie.localIndex].baryCoords[1];
+                size_t index = m_map2d[ie.localIndex].in_index;
+                if ( index<c0 )
+                {
+                    const Triangle& triangle = triangles[index];
+                    this->addMatrixContrib(m_matrixJ, k, triangle[0],  ( 1-fx-fy ));
+                    this->addMatrixContrib(m_matrixJ, k, triangle[1],  fx);
+                    this->addMatrixContrib(m_matrixJ, k, triangle[2],  fy);
+                }
+                else
+                {
+                    const Quad& quad = quads[index-c0];
+                    this->addMatrixContrib(m_matrixJ, k, quad[0],  ( ( 1-fx ) * ( 1-fy ) ));
+                    this->addMatrixContrib(m_matrixJ, k, quad[1],  ( ( fx ) * ( 1-fy ) ));
+                    this->addMatrixContrib(m_matrixJ, k, quad[3],  ( ( 1-fx ) * ( fy ) ));
+                    this->addMatrixContrib(m_matrixJ, k, quad[2],  ( ( fx ) * ( fy ) ));
+                }
+                break;
+            }
+            case D3: {
+                const size_t c0 = tetrahedra.size();
+                const Real fx = ( Real ) m_map3d[ie.localIndex].baryCoords[0];
+                const Real fy = ( Real ) m_map3d[ie.localIndex].baryCoords[1];
+                const Real fz = ( Real ) m_map3d[ie.localIndex].baryCoords[2];
+                size_t index = m_map3d[ie.localIndex].in_index;
+                if ( index<c0 )
+                {
+                    const Tetra& tetra = tetrahedra[index];
+                    this->addMatrixContrib(m_matrixJ, k, tetra[0],  ( 1-fx-fy-fz ));
+                    this->addMatrixContrib(m_matrixJ, k, tetra[1],  fx);
+                    this->addMatrixContrib(m_matrixJ, k, tetra[2],  fy);
+                    this->addMatrixContrib(m_matrixJ, k, tetra[3],  fz);
+                }
+                else
+                {
+                    const Hexa& cube = cubes[index-c0];
+
+                    this->addMatrixContrib(m_matrixJ, k, cube[0],  ( ( 1-fx ) * ( 1-fy ) * ( 1-fz ) ));
+                    this->addMatrixContrib(m_matrixJ, k, cube[1],  ( ( fx ) * ( 1-fy ) * ( 1-fz ) ));
+
+                    this->addMatrixContrib(m_matrixJ, k, cube[3],  ( ( 1-fx ) * ( fy ) * ( 1-fz ) ));
+                    this->addMatrixContrib(m_matrixJ, k, cube[2],  ( ( fx ) * ( fy ) * ( 1-fz ) ));
+
+                    this->addMatrixContrib(m_matrixJ, k, cube[4],  ( ( 1-fx ) * ( 1-fy ) * ( fz ) ));
+                    this->addMatrixContrib(m_matrixJ, k, cube[5],  ( ( fx ) * ( 1-fy ) * ( fz ) ));
+
+                    this->addMatrixContrib(m_matrixJ, k, cube[7],  ( ( 1-fx ) * ( fy ) * ( fz ) ));
+                    this->addMatrixContrib(m_matrixJ, k, cube[6],  ( ( fx ) * ( fy ) * ( fz ) ));
+                }
+                break;
             }
         }
     }
-    // 2D elements
-    {
-        const size_t i0 = m_map0d.size()+m_map1d.size();
-        const size_t c0 = triangles.size();
-        for ( size_t i=0; i<m_map2d.size(); i++ )
-        {
-            const size_t out = i+i0;
-            const Real fx = ( Real ) m_map2d[i].baryCoords[0];
-            const Real fy = ( Real ) m_map2d[i].baryCoords[1];
-            size_t index = m_map2d[i].in_index;
-            if ( index<c0 )
-            {
-                const Triangle& triangle = triangles[index];
-                this->addMatrixContrib(m_matrixJ, out, triangle[0],  ( 1-fx-fy ));
-                this->addMatrixContrib(m_matrixJ, out, triangle[1],  fx);
-                this->addMatrixContrib(m_matrixJ, out, triangle[2],  fy);
-            }
-            else
-            {
-                const Quad& quad = quads[index-c0];
-                this->addMatrixContrib(m_matrixJ, out, quad[0],  ( ( 1-fx ) * ( 1-fy ) ));
-                this->addMatrixContrib(m_matrixJ, out, quad[1],  ( ( fx ) * ( 1-fy ) ));
-                this->addMatrixContrib(m_matrixJ, out, quad[3],  ( ( 1-fx ) * ( fy ) ));
-                this->addMatrixContrib(m_matrixJ, out, quad[2],  ( ( fx ) * ( fy ) ));
-            }
-        }
-    }
-    // 3D elements
-    {
-        const size_t i0 = m_map0d.size() + m_map1d.size() + m_map2d.size();
-        const size_t c0 = tetrahedra.size();
-        for ( size_t i=0; i<m_map3d.size(); i++ )
-        {
-            const size_t out = i+i0;
-            const Real fx = ( Real ) m_map3d[i].baryCoords[0];
-            const Real fy = ( Real ) m_map3d[i].baryCoords[1];
-            const Real fz = ( Real ) m_map3d[i].baryCoords[2];
-            size_t index = m_map3d[i].in_index;
-            if ( index<c0 )
-            {
-                const Tetra& tetra = tetrahedra[index];
-                this->addMatrixContrib(m_matrixJ, out, tetra[0],  ( 1-fx-fy-fz ));
-                this->addMatrixContrib(m_matrixJ, out, tetra[1],  fx);
-                this->addMatrixContrib(m_matrixJ, out, tetra[2],  fy);
-                this->addMatrixContrib(m_matrixJ, out, tetra[3],  fz);
-            }
-            else
-            {
-                const Hexa& cube = cubes[index-c0];
 
-                this->addMatrixContrib(m_matrixJ, out, cube[0],  ( ( 1-fx ) * ( 1-fy ) * ( 1-fz ) ));
-                this->addMatrixContrib(m_matrixJ, out, cube[1],  ( ( fx ) * ( 1-fy ) * ( 1-fz ) ));
-
-                this->addMatrixContrib(m_matrixJ, out, cube[3],  ( ( 1-fx ) * ( fy ) * ( 1-fz ) ));
-                this->addMatrixContrib(m_matrixJ, out, cube[2],  ( ( fx ) * ( fy ) * ( 1-fz ) ));
-
-                this->addMatrixContrib(m_matrixJ, out, cube[4],  ( ( 1-fx ) * ( 1-fy ) * ( fz ) ));
-                this->addMatrixContrib(m_matrixJ, out, cube[5],  ( ( fx ) * ( 1-fy ) * ( fz ) ));
-
-                this->addMatrixContrib(m_matrixJ, out, cube[7],  ( ( 1-fx ) * ( fy ) * ( fz ) ));
-                this->addMatrixContrib(m_matrixJ, out, cube[6],  ( ( fx ) * ( fy ) * ( fz ) ));
-            }
-        }
-    }
     m_matrixJ->compress();
     m_updateJ = false;
     return m_matrixJ;
@@ -871,113 +875,108 @@ void BarycentricMapperMeshTopology<In,Out>::applyJT ( typename In::VecDeriv& out
     {
         if( !this->maskTo->getEntry(i) ) continue;
 
-        // 0D elements
-        if ( i < i0d )
+        const IndexationEntry& ie = m_indexation[i];
+        switch (ie.dimType)
         {
-            const typename Out::DPos v = Out::getDPos(in[i]);
-            size_t index = m_map0d[i].in_index;
-            {
+            case D0: {
+                const typename Out::DPos v = Out::getDPos(in[i]);
+                size_t index = m_map0d[ie.localIndex].in_index;
                 mask.insertEntry(index);
+                break;
             }
-        }
-        // 1D elements
-        else if (i < i1d)
-        {
-            const size_t i0 = m_map0d.size();
-            const typename Out::DPos v = Out::getDPos(in[i]);
-            const OutReal fx = ( OutReal ) m_map1d[i-i0].baryCoords[0];
-            size_t index = m_map1d[i-i0].in_index;
-            {
-                const Edge& line = lines[index];
-                out[line[0]] += v * ( 1-fx );
-                out[line[1]] += v * fx;
-                mask.insertEntry(line[0]);
-                mask.insertEntry(line[1]);
+            case D1: {
+                const typename Out::DPos v = Out::getDPos(in[i]);
+                const OutReal fx = ( OutReal ) m_map1d[ie.localIndex].baryCoords[0];
+                size_t index = m_map1d[ie.localIndex].in_index;
+                {
+                    const Edge& line = lines[index];
+                    out[line[0]] += v * ( 1-fx );
+                    out[line[1]] += v * fx;
+                    mask.insertEntry(line[0]);
+                    mask.insertEntry(line[1]);
+                }
+                break;
             }
-        }
-        // 2D elements
-        else if (i < i1d+i2d)
-        {
-            const size_t i0 = m_map0d.size() + m_map1d.size();
-            const size_t c0 = triangles.size();
-            const typename Out::DPos v = Out::getDPos(in[i]);
-            const OutReal fx = ( OutReal ) m_map2d[i-i0].baryCoords[0];
-            const OutReal fy = ( OutReal ) m_map2d[i-i0].baryCoords[1];
-            size_t index = m_map2d[i-i0].in_index;
-            if ( index<c0 )
-            {
-                const Triangle& triangle = triangles[index];
-                out[triangle[0]] += v * ( 1-fx-fy );
-                out[triangle[1]] += v * fx;
-                out[triangle[2]] += v * fy;
-                mask.insertEntry(triangle[0]);
-                mask.insertEntry(triangle[1]);
-                mask.insertEntry(triangle[2]);
+            case D2: {
+                const size_t c0 = triangles.size();
+                const typename Out::DPos v = Out::getDPos(in[i]);
+                const OutReal fx = ( OutReal ) m_map2d[ie.localIndex].baryCoords[0];
+                const OutReal fy = ( OutReal ) m_map2d[ie.localIndex].baryCoords[1];
+                size_t index = m_map2d[ie.localIndex].in_index;
+                if ( index<c0 )
+                {
+                    const Triangle& triangle = triangles[index];
+                    out[triangle[0]] += v * ( 1-fx-fy );
+                    out[triangle[1]] += v * fx;
+                    out[triangle[2]] += v * fy;
+                    mask.insertEntry(triangle[0]);
+                    mask.insertEntry(triangle[1]);
+                    mask.insertEntry(triangle[2]);
+                }
+                else
+                {
+                    const Quad& quad = quads[index-c0];
+                    out[quad[0]] += v * ( ( 1-fx ) * ( 1-fy ) );
+                    out[quad[1]] += v * ( ( fx ) * ( 1-fy ) );
+                    out[quad[3]] += v * ( ( 1-fx ) * ( fy ) );
+                    out[quad[2]] += v * ( ( fx ) * ( fy ) );
+                    mask.insertEntry(quad[0]);
+                    mask.insertEntry(quad[1]);
+                    mask.insertEntry(quad[2]);
+                    mask.insertEntry(quad[3]);
+                }
+                break;
             }
-            else
-            {
-                const Quad& quad = quads[index-c0];
-                out[quad[0]] += v * ( ( 1-fx ) * ( 1-fy ) );
-                out[quad[1]] += v * ( ( fx ) * ( 1-fy ) );
-                out[quad[3]] += v * ( ( 1-fx ) * ( fy ) );
-                out[quad[2]] += v * ( ( fx ) * ( fy ) );
-                mask.insertEntry(quad[0]);
-                mask.insertEntry(quad[1]);
-                mask.insertEntry(quad[2]);
-                mask.insertEntry(quad[3]);
-            }
-        }
-        // 3D elements
-        else if (i < i1d+i2d+i3d)
-        {
-            const size_t i0 = m_map0d.size() + m_map1d.size() + m_map2d.size();
-            const size_t c0 = tetrahedra.size();
-            const typename Out::DPos v = Out::getDPos(in[i]);
-            const OutReal fx = ( OutReal ) m_map3d[i-i0].baryCoords[0];
-            const OutReal fy = ( OutReal ) m_map3d[i-i0].baryCoords[1];
-            const OutReal fz = ( OutReal ) m_map3d[i-i0].baryCoords[2];
-            size_t index = m_map3d[i-i0].in_index;
-            if ( index<c0 )
-            {
-                const Tetra& tetra = tetrahedra[index];
-                out[tetra[0]] += v * ( 1-fx-fy-fz );
-                out[tetra[1]] += v * fx;
-                out[tetra[2]] += v * fy;
-                out[tetra[3]] += v * fz;
-                mask.insertEntry(tetra[0]);
-                mask.insertEntry(tetra[1]);
-                mask.insertEntry(tetra[2]);
-                mask.insertEntry(tetra[3]);
-            }
-            else
-            {
+            case D3: {
+                const size_t c0 = tetrahedra.size();
+                const typename Out::DPos v = Out::getDPos(in[i]);
+                const OutReal fx = ( OutReal ) m_map3d[ie.localIndex].baryCoords[0];
+                const OutReal fy = ( OutReal ) m_map3d[ie.localIndex].baryCoords[1];
+                const OutReal fz = ( OutReal ) m_map3d[ie.localIndex].baryCoords[2];
+                size_t index = m_map3d[ie.localIndex].in_index;
+                if ( index<c0 )
+                {
+                    const Tetra& tetra = tetrahedra[index];
+                    out[tetra[0]] += v * ( 1-fx-fy-fz );
+                    out[tetra[1]] += v * fx;
+                    out[tetra[2]] += v * fy;
+                    out[tetra[3]] += v * fz;
+                    mask.insertEntry(tetra[0]);
+                    mask.insertEntry(tetra[1]);
+                    mask.insertEntry(tetra[2]);
+                    mask.insertEntry(tetra[3]);
+                }
+                else
+                {
+                    const Hexa& cube = cubes[index-c0];
 
-                const Hexa& cube = cubes[index-c0];
+                    out[cube[0]] += v * ( ( 1-fx ) * ( 1-fy ) * ( 1-fz ) );
+                    out[cube[1]] += v * ( ( fx ) * ( 1-fy ) * ( 1-fz ) );
 
-                out[cube[0]] += v * ( ( 1-fx ) * ( 1-fy ) * ( 1-fz ) );
-                out[cube[1]] += v * ( ( fx ) * ( 1-fy ) * ( 1-fz ) );
+                    out[cube[3]] += v * ( ( 1-fx ) * ( fy ) * ( 1-fz ) );
+                    out[cube[2]] += v * ( ( fx ) * ( fy ) * ( 1-fz ) );
 
-                out[cube[3]] += v * ( ( 1-fx ) * ( fy ) * ( 1-fz ) );
-                out[cube[2]] += v * ( ( fx ) * ( fy ) * ( 1-fz ) );
+                    out[cube[4]] += v * ( ( 1-fx ) * ( 1-fy ) * ( fz ) );
+                    out[cube[5]] += v * ( ( fx ) * ( 1-fy ) * ( fz ) );
 
-                out[cube[4]] += v * ( ( 1-fx ) * ( 1-fy ) * ( fz ) );
-                out[cube[5]] += v * ( ( fx ) * ( 1-fy ) * ( fz ) );
-
-                out[cube[7]] += v * ( ( 1-fx ) * ( fy ) * ( fz ) );
-                out[cube[6]] += v * ( ( fx ) * ( fy ) * ( fz ) );
+                    out[cube[7]] += v * ( ( 1-fx ) * ( fy ) * ( fz ) );
+                    out[cube[6]] += v * ( ( fx ) * ( fy ) * ( fz ) );
 
 
-                mask.insertEntry(cube[0]);
-                mask.insertEntry(cube[1]);
-                mask.insertEntry(cube[2]);
-                mask.insertEntry(cube[3]);
-                mask.insertEntry(cube[4]);
-                mask.insertEntry(cube[5]);
-                mask.insertEntry(cube[6]);
-                mask.insertEntry(cube[7]);
+                    mask.insertEntry(cube[0]);
+                    mask.insertEntry(cube[1]);
+                    mask.insertEntry(cube[2]);
+                    mask.insertEntry(cube[3]);
+                    mask.insertEntry(cube[4]);
+                    mask.insertEntry(cube[5]);
+                    mask.insertEntry(cube[6]);
+                    mask.insertEntry(cube[7]);
+                }
+                break;
             }
         }
     }
+
 }
 
 
@@ -985,7 +984,7 @@ void BarycentricMapperMeshTopology<In,Out>::applyJT ( typename In::VecDeriv& out
 template <class In, class Out>
 void BarycentricMapperMeshTopology<In,Out>::applyJ ( typename Out::VecDeriv& out, const typename In::VecDeriv& in )
 {
-    out.resize( m_map0d.size() +m_map1d.size() +m_map2d.size() +m_map3d.size() );
+    out.resize( m_indexation.size() );
 
     const SeqLines& lines = this->m_fromTopology->getLines();
     const SeqTriangles& triangles = this->m_fromTopology->getTriangles();
@@ -993,95 +992,78 @@ void BarycentricMapperMeshTopology<In,Out>::applyJ ( typename Out::VecDeriv& out
     const SeqTetrahedra& tetrahedra = this->m_fromTopology->getTetrahedra();
     const SeqHexahedra& cubes = this->m_fromTopology->getHexahedra();
 
-    const size_t sizeMap0d=m_map0d.size();
-    const size_t sizeMap1d=m_map1d.size();
-    const size_t sizeMap2d=m_map2d.size();
-    const size_t sizeMap3d=m_map3d.size();
-
-    const size_t idxStart0=sizeMap0d;
-    const size_t idxStart1=sizeMap0d+sizeMap1d;
-    const size_t idxStart2=sizeMap0d+sizeMap1d+sizeMap2d;
-    const size_t idxStart3=sizeMap0d+sizeMap1d+sizeMap2d+sizeMap3d;
-
     for( size_t i=0 ; i<this->maskTo->size() ; ++i)
     {
         if( this->maskTo->isActivated() && !this->maskTo->getEntry(i) ) continue;
 
-        // 0D elements
-        if ( i < idxStart0 )
+        const IndexationEntry& ie = m_indexation[i];
+        switch (ie.dimType)
         {
-            int pointIndex = m_map0d[i].in_index;
-            {
+            case D0: {
+                int pointIndex = m_map0d[ie.localIndex].in_index;
                 Out::setDPos(out[i] , in[pointIndex]);
+                break;
             }
-        }
-        // 1D elements
-        else if (i < idxStart1)
-        {
-            const size_t i0 = idxStart0;
-            const Real fx = m_map1d[i-i0].baryCoords[0];
-            int index = m_map1d[i-i0].in_index;
-            {
+            case D1: {
+                const Real fx = m_map1d[ie.localIndex].baryCoords[0];
+                int index = m_map1d[ie.localIndex].in_index;
                 const Edge& line = lines[index];
                 Out::setDPos(out[i] , in[line[0]] * ( 1-fx )
                         + in[line[1]] * fx );
+                break;
             }
-        }
-        // 2D elements
-        else if (i < idxStart2)
-        {
-            const size_t i0 = idxStart1;
-            const size_t c0 = triangles.size();
+            case D2: {
+                const size_t c0 = triangles.size();
 
-            const Real fx = m_map2d[i-i0].baryCoords[0];
-            const Real fy = m_map2d[i-i0].baryCoords[1];
-            size_t index = m_map2d[i-i0].in_index;
+                const Real fx = m_map2d[ie.localIndex].baryCoords[0];
+                const Real fy = m_map2d[ie.localIndex].baryCoords[1];
+                size_t index = m_map2d[ie.localIndex].in_index;
 
-            if ( index<c0 )
-            {
-                const Triangle& triangle = triangles[index];
-                Out::setDPos(out[i] , in[triangle[0]] * ( 1-fx-fy )
-                        + in[triangle[1]] * fx
-                        + in[triangle[2]] * fy );
+                if ( index<c0 )
+                {
+                    const Triangle& triangle = triangles[index];
+                    Out::setDPos(out[i] , in[triangle[0]] * ( 1-fx-fy )
+                            + in[triangle[1]] * fx
+                            + in[triangle[2]] * fy );
+                }
+                else
+                {
+                    const Quad& quad = quads[index-c0];
+                    Out::setDPos(out[i] , in[quad[0]] * ( ( 1-fx ) * ( 1-fy ) )
+                            + in[quad[1]] * ( ( fx ) * ( 1-fy ) )
+                            + in[quad[3]] * ( ( 1-fx ) * ( fy ) )
+                            + in[quad[2]] * ( ( fx ) * ( fy ) ) );
+                }
+                break;
             }
-            else
-            {
-                const Quad& quad = quads[index-c0];
-                Out::setDPos(out[i] , in[quad[0]] * ( ( 1-fx ) * ( 1-fy ) )
-                        + in[quad[1]] * ( ( fx ) * ( 1-fy ) )
-                        + in[quad[3]] * ( ( 1-fx ) * ( fy ) )
-                        + in[quad[2]] * ( ( fx ) * ( fy ) ) );
-            }
-        }
-        // 3D elements
-        else if (i < idxStart3)
-        {
-            const size_t i0 = idxStart2;
-            const size_t c0 = tetrahedra.size();
-            const Real fx = m_map3d[i-i0].baryCoords[0];
-            const Real fy = m_map3d[i-i0].baryCoords[1];
-            const Real fz = m_map3d[i-i0].baryCoords[2];
-            size_t index = m_map3d[i-i0].in_index;
-            if ( index<c0 )
-            {
-                const Tetra& tetra = tetrahedra[index];
-                Out::setDPos(out[i] , in[tetra[0]] * ( 1-fx-fy-fz )
-                        + in[tetra[1]] * fx
-                        + in[tetra[2]] * fy
-                        + in[tetra[3]] * fz );
-            }
-            else
-            {
-                const Hexa& cube = cubes[index-c0];
+            case D3: {
+                const size_t c0 = tetrahedra.size();
+                const Real fx = m_map3d[ie.localIndex].baryCoords[0];
+                const Real fy = m_map3d[ie.localIndex].baryCoords[1];
+                const Real fz = m_map3d[ie.localIndex].baryCoords[2];
+                size_t index = m_map3d[ie.localIndex].in_index;
+                if ( index<c0 )
+                {
+                    const Tetra& tetra = tetrahedra[index];
+                    Out::setDPos(out[i] , in[tetra[0]] * ( 1-fx-fy-fz )
+                            + in[tetra[1]] * fx
+                            + in[tetra[2]] * fy
+                            + in[tetra[3]] * fz );
+                }
+                else
+                {
+                    const Hexa& cube = cubes[index-c0];
 
-                Out::setDPos(out[i] , in[cube[0]] * ( ( 1-fx ) * ( 1-fy ) * ( 1-fz ) )
-                        + in[cube[1]] * ( ( fx ) * ( 1-fy ) * ( 1-fz ) )
-                        + in[cube[3]] * ( ( 1-fx ) * ( fy ) * ( 1-fz ) )
-                        + in[cube[2]] * ( ( fx ) * ( fy ) * ( 1-fz ) )
-                        + in[cube[4]] * ( ( 1-fx ) * ( 1-fy ) * ( fz ) )
-                        + in[cube[5]] * ( ( fx ) * ( 1-fy ) * ( fz ) )
-                        + in[cube[7]] * ( ( 1-fx ) * ( fy ) * ( fz ) )
-                        + in[cube[6]] * ( ( fx ) * ( fy ) * ( fz ) ) );
+                    Out::setDPos(out[i] , in[cube[0]] * ( ( 1-fx ) * ( 1-fy ) * ( 1-fz ) )
+                            + in[cube[1]] * ( ( fx ) * ( 1-fy ) * ( 1-fz ) )
+                            + in[cube[3]] * ( ( 1-fx ) * ( fy ) * ( 1-fz ) )
+                            + in[cube[2]] * ( ( fx ) * ( fy ) * ( 1-fz ) )
+                            + in[cube[4]] * ( ( 1-fx ) * ( 1-fy ) * ( fz ) )
+                            + in[cube[5]] * ( ( fx ) * ( 1-fy ) * ( fz ) )
+                            + in[cube[7]] * ( ( 1-fx ) * ( fy ) * ( fz ) )
+                            + in[cube[6]] * ( ( fx ) * ( fy ) * ( fz ) ) );
+                }
+                break;
             }
         }
     }
@@ -1092,14 +1074,14 @@ void BarycentricMapperMeshTopology<In,Out>::applyJ ( typename Out::VecDeriv& out
 template <class In, class Out>
 void BarycentricMapperMeshTopology<In,Out>::resize( core::State<Out>* toModel )
 {
-    toModel->resize(m_map0d.size() +m_map1d.size() +m_map2d.size() +m_map3d.size());
+    toModel->resize( m_indexation.size() );
 }
 
 
 template <class In, class Out>
 void BarycentricMapperMeshTopology<In,Out>::apply ( typename Out::VecCoord& out, const typename In::VecCoord& in )
 {
-    out.resize( m_map0d.size() +m_map1d.size() +m_map2d.size() +m_map3d.size() );
+    out.resize( m_indexation.size() );
 
     const SeqLines& lines = this->m_fromTopology->getLines();
     const SeqTriangles& triangles = this->m_fromTopology->getTriangles();
@@ -1107,97 +1089,88 @@ void BarycentricMapperMeshTopology<In,Out>::apply ( typename Out::VecCoord& out,
     const SeqTetrahedra& tetrahedra = this->m_fromTopology->getTetrahedra();
     const SeqHexahedra& cubes = this->m_fromTopology->getHexahedra();
 
-    // 0D elements
+    for(size_t k = 0; k < m_indexation.size(); ++k)
     {
-        for ( unsigned int i=0; i<m_map0d.size(); i++ )
+        const IndexationEntry& ie = m_indexation[k];
+        switch (ie.dimType)
         {
-            int pointIndex = m_map0d[i].in_index;
-            {
-                Out::setCPos(out[i] , in[pointIndex]);
+            case D0: {
+                int pointIndex = m_map0d[ie.localIndex].in_index;
+                Out::setCPos(out[k] , in[pointIndex]);
+                break;
             }
-        }
-    }
-    // 1D elements
-    {
-        const int i0 = m_map0d.size();
-        for ( unsigned int i=0; i<m_map1d.size(); i++ )
-        {
-            const Real fx = m_map1d[i].baryCoords[0];
-            int index = m_map1d[i].in_index;
-            {
+            case D1: {
+                const Real fx = m_map1d[ie.localIndex].baryCoords[0];
+                int index = m_map1d[ie.localIndex].in_index;
                 const Edge& line = lines[index];
-                Out::setCPos(out[i+i0] , in[line[0]] * ( 1-fx )
+                Out::setCPos(out[k] , in[line[0]] * ( 1-fx )
                         + in[line[1]] * fx );
+                break;
             }
-        }
-    }
-    // 2D elements
-    {
-        const int i0 = m_map0d.size() + m_map1d.size();
-        const int c0 = triangles.size();
-        for ( unsigned int i=0; i<m_map2d.size(); i++ )
-        {
-            const Real fx = m_map2d[i].baryCoords[0];
-            const Real fy = m_map2d[i].baryCoords[1];
-            int index = m_map2d[i].in_index;
-            if ( index<c0 )
-            {
-                const Triangle& triangle = triangles[index];
-                Out::setCPos(out[i+i0] , in[triangle[0]] * ( 1-fx-fy )
-                        + in[triangle[1]] * fx
-                        + in[triangle[2]] * fy );
-            }
-            else
-            {
-                if (quads.size())
+            case D2: {
+                const int c0 = triangles.size();
+                const Real fx = m_map2d[ie.localIndex].baryCoords[0];
+                const Real fy = m_map2d[ie.localIndex].baryCoords[1];
+                int index = m_map2d[ie.localIndex].in_index;
+                if ( index<c0 )
                 {
-                    const Quad& quad = quads[index-c0];
-                    Out::setCPos(out[i+i0] , in[quad[0]] * ( ( 1-fx ) * ( 1-fy ) )
-                            + in[quad[1]] * ( ( fx ) * ( 1-fy ) )
-                            + in[quad[3]] * ( ( 1-fx ) * ( fy ) )
-                            + in[quad[2]] * ( ( fx ) * ( fy ) ) );
+                    const Triangle& triangle = triangles[index];
+                    Out::setCPos(out[k] , in[triangle[0]] * ( 1-fx-fy )
+                            + in[triangle[1]] * fx
+                            + in[triangle[2]] * fy );
                 }
+                else
+                {
+                    if (quads.size())
+                    {
+                        const Quad& quad = quads[index-c0];
+                        Out::setCPos(out[k] , in[quad[0]] * ( ( 1-fx ) * ( 1-fy ) )
+                                + in[quad[1]] * ( ( fx ) * ( 1-fy ) )
+                                + in[quad[3]] * ( ( 1-fx ) * ( fy ) )
+                                + in[quad[2]] * ( ( fx ) * ( fy ) ) );
+                    }
+                }
+                break;
+            }
+            case D3: {
+                const int c0 = tetrahedra.size();
+                const Real fx = m_map3d[ie.localIndex].baryCoords[0];
+                const Real fy = m_map3d[ie.localIndex].baryCoords[1];
+                const Real fz = m_map3d[ie.localIndex].baryCoords[2];
+                int index = m_map3d[ie.localIndex].in_index;
+                if ( index<c0 )
+                {
+                    const Tetra& tetra = tetrahedra[index];
+                    Out::setCPos(out[k] , in[tetra[0]] * ( 1-fx-fy-fz )
+                            + in[tetra[1]] * fx
+                            + in[tetra[2]] * fy
+                            + in[tetra[3]] * fz );
+                }
+                else
+                {
+                    const Hexa& cube = cubes[index-c0];
+                    Out::setCPos(out[k] , in[cube[0]] * ( ( 1-fx ) * ( 1-fy ) * ( 1-fz ) )
+                            + in[cube[1]] * ( ( fx ) * ( 1-fy ) * ( 1-fz ) )
+                            + in[cube[3]] * ( ( 1-fx ) * ( fy ) * ( 1-fz ) )
+                            + in[cube[2]] * ( ( fx ) * ( fy ) * ( 1-fz ) )
+                            + in[cube[4]] * ( ( 1-fx ) * ( 1-fy ) * ( fz ) )
+                            + in[cube[5]] * ( ( fx ) * ( 1-fy ) * ( fz ) )
+                            + in[cube[7]] * ( ( 1-fx ) * ( fy ) * ( fz ) )
+                            + in[cube[6]] * ( ( fx ) * ( fy ) * ( fz ) ) );
+                }
+                break;
             }
         }
     }
-    // 3D elements
-    {
-        const int i0 = m_map0d.size() + m_map1d.size() + m_map2d.size();
-        const int c0 = tetrahedra.size();
-        for ( unsigned int i=0; i<m_map3d.size(); i++ )
-        {
-            const Real fx = m_map3d[i].baryCoords[0];
-            const Real fy = m_map3d[i].baryCoords[1];
-            const Real fz = m_map3d[i].baryCoords[2];
-            int index = m_map3d[i].in_index;
-            if ( index<c0 )
-            {
-                const Tetra& tetra = tetrahedra[index];
-                Out::setCPos(out[i+i0] , in[tetra[0]] * ( 1-fx-fy-fz )
-                        + in[tetra[1]] * fx
-                        + in[tetra[2]] * fy
-                        + in[tetra[3]] * fz );
-            }
-            else
-            {
-                const Hexa& cube = cubes[index-c0];
 
-                Out::setCPos(out[i+i0] , in[cube[0]] * ( ( 1-fx ) * ( 1-fy ) * ( 1-fz ) )
-                        + in[cube[1]] * ( ( fx ) * ( 1-fy ) * ( 1-fz ) )
-                        + in[cube[3]] * ( ( 1-fx ) * ( fy ) * ( 1-fz ) )
-                        + in[cube[2]] * ( ( fx ) * ( fy ) * ( 1-fz ) )
-                        + in[cube[4]] * ( ( 1-fx ) * ( 1-fy ) * ( fz ) )
-                        + in[cube[5]] * ( ( fx ) * ( 1-fy ) * ( fz ) )
-                        + in[cube[7]] * ( ( 1-fx ) * ( fy ) * ( fz ) )
-                        + in[cube[6]] * ( ( fx ) * ( fy ) * ( fz ) ) );
-            }
-        }
-    }
 }
 
 template <class In, class Out>
 std::istream& operator >> ( std::istream& in, BarycentricMapperMeshTopology<In, Out> &b )
 {
+    typedef typename BarycentricMapperMeshTopology<In, Out>::MappingDataDimension MappingDataDimension;
+    b.m_indexation.clear();
+
     unsigned int size_vec;
     in >> size_vec;
     b.m_map0d.clear();
@@ -1205,7 +1178,9 @@ std::istream& operator >> ( std::istream& in, BarycentricMapperMeshTopology<In, 
     for (unsigned int i=0; i<size_vec; i++)
     {
         in >> value0d;
+        size_t localIndex = b.m_map0d.size();
         b.m_map0d.push_back(value0d);
+        b.m_indexation.push_back(IndexationEntry(MappingDataDimension::D0, localIndex));
     }
 
     in >> size_vec;
@@ -1214,7 +1189,9 @@ std::istream& operator >> ( std::istream& in, BarycentricMapperMeshTopology<In, 
     for (unsigned int i=0; i<size_vec; i++)
     {
         in >> value1d;
+        size_t localIndex = b.m_map1d.size();
         b.m_map1d.push_back(value1d);
+        b.m_indexation.push_back(IndexationEntry(MappingDataDimension::D1, localIndex));
     }
 
     in >> size_vec;
@@ -1223,7 +1200,9 @@ std::istream& operator >> ( std::istream& in, BarycentricMapperMeshTopology<In, 
     for (unsigned int i=0; i<size_vec; i++)
     {
         in >> value2d;
+        size_t localIndex = b.m_map2d.size();
         b.m_map2d.push_back(value2d);
+        b.m_indexation.push_back(IndexationEntry(MappingDataDimension::D2, localIndex));
     }
 
     in >> size_vec;
@@ -1232,7 +1211,9 @@ std::istream& operator >> ( std::istream& in, BarycentricMapperMeshTopology<In, 
     for (unsigned int i=0; i<size_vec; i++)
     {
         in >> value3d;
+        size_t localIndex = b.m_map3d.size();
         b.m_map3d.push_back(value3d);
+        b.m_indexation.push_back(IndexationEntry(MappingDataDimension::D3, localIndex));
     }
     return in;
 }
@@ -1259,7 +1240,6 @@ std::ostream& operator << ( std::ostream& out, const BarycentricMapperMeshTopolo
 
     return out;
 }
-
 
 }
 }
